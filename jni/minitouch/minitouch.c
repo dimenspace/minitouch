@@ -630,6 +630,30 @@ static int start_server(char* sockname)
   return fd;
 }
 
+// add
+static int connect_client(const char *name) {
+    int localSocket, len;
+    struct sockaddr_un remote;
+
+    if ((localSocket = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+        fprintf(stderr, "Cannot open local socket");
+        return -1;
+    }
+
+    remote.sun_path[0] = '\0';
+    strcpy(remote.sun_path + 1, name);
+    remote.sun_family = AF_UNIX;
+    int nameLen = strlen(name);
+    len = 1 + nameLen + offsetof(
+    struct sockaddr_un, sun_path);
+
+    if (connect(localSocket, (struct sockaddr *) &remote, len) == -1) {
+        fprintf(stderr, "Cannot connect local socket %s", name);
+        return -1;
+    }
+    return localSocket;
+}
+
 static void parse_input(char* buffer, internal_state_t* state)
 {
   char* cursor;
@@ -938,18 +962,17 @@ int main(int argc, char* argv[])
   struct sockaddr_un client_addr;
   socklen_t client_addr_length = sizeof(client_addr);
 
-  int server_fd = start_server(sockname);
+  //int server_fd = start_server(sockname);
+  //
+  //if (server_fd < 0)
+  //{
+  //  fprintf(stderr, "Unable to start server on %s\n", sockname);
+  //  return EXIT_FAILURE;
+  //}
 
-  if (server_fd < 0)
+  //while (1)
   {
-    fprintf(stderr, "Unable to start server on %s\n", sockname);
-    return EXIT_FAILURE;
-  }
-
-  while (1)
-  {
-    int client_fd = accept(server_fd, (struct sockaddr *) &client_addr,
-      &client_addr_length);
+    int client_fd = connect_client(sockname);
 
     if (client_fd < 0)
     {
@@ -985,7 +1008,7 @@ int main(int argc, char* argv[])
     close(client_fd);
   }
 
-  close(server_fd);
+  //close(server_fd);
 
   libevdev_free(state.evdev);
   close(state.fd);
